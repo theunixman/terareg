@@ -29,8 +29,8 @@ library
   default-language:    Haskell2010
   ghc-options:    -O2 -Wall -rtsopts -fno-warn-unused-do-bind -threaded
 
-library
-  exposed-modules:     DataGen
+executable datagen
+  main-is:     DataGen.hs
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9,
@@ -45,4 +45,4 @@ library
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:    -O2 -Wall -rtsopts -fno-warn-unused-do-bind -threaded
-  
+  extra-lib-dirs: /usr/lib

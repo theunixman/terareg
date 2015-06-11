@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module DataGen where
+module Main where
 
 import qualified Data.ByteString as B
 import Data.Serialize
@@ -23,17 +23,17 @@ zeroVec :: Int -> Vector Double
 zeroVec n = vector (replicate n 0.0)
 
 flagMatrix :: Int -> Double -> Matrix Double
-flagMatrix n cov =
-  build (n, n) $ \i j -> if i == j then 1 else cov
+flagMatrix n c =
+  build (n, n) $ \i j -> if i == j then 1 else c
 
 generatePredictors :: Seed -> Int -> Int -> Double -> Matrix Double
-generatePredictors seed nPoints nDim cov =
-  gaussianSample seed nPoints (zeroVec nDim) (flagMatrix nDim cov)
+generatePredictors seed nPts nDim cv =
+  gaussianSample seed nPts (zeroVec nDim) (flagMatrix nDim cv)
 
 generateResponses :: Seed -> Vector Double -> Double -> Matrix Double -> Vector Double
-generateResponses seed weights noise predictors =
-  noiseVec + (vector $ map (\xs -> dot weights xs) (toRows predictors))
-  where noiseVec = (randomVector seed Gaussian n) * vector [noise]
+generateResponses seed wts nois predictors =
+  noiseVec + (vector $ map (\xs -> dot wts xs) (toRows predictors))
+  where noiseVec = (randomVector seed Gaussian n) * vector [nois]
         (n, _)   = size predictors
 
 data Config = Config {seed1   :: Seed,
@@ -43,6 +43,7 @@ data Config = Config {seed1   :: Seed,
                       noise   :: Double,
                       cov     :: Double} deriving Show
 
+defaultConfig :: Int -> Int -> Config
 defaultConfig n p = Config 867 5309 n w 0.25 0.99
   where w = build p (\i -> if (i == 0) then 1 else 0)
 
@@ -60,7 +61,7 @@ bytesToDoubles :: B.ByteString -> [Double]
 bytesToDoubles bytes =
   case decode bytes of
     Left str    -> error str
-    Right words -> map word64ToDouble words
+    Right wds -> map word64ToDouble wds
 
 --TODO: if our Vectors get too large for memory, we'll use
 --Data.ByteString.Lazy instead. 
@@ -92,3 +93,10 @@ inverseTest = do
     putStrLn "Passed inverse test."
   else
     putStrLn "Failed inverse test."
+
+main :: IO ()
+main = do
+    let (p, r) = generateData $ defaultConfig 100000 1
+    writeMatrix p "pred.dat"
+    writeVector r "resp.dat"
+    
