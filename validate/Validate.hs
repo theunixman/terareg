@@ -4,7 +4,7 @@ import TeraReg.DataGen
 import TeraReg.LinReg
 
 ns :: Int
-ns = 1000000
+ns = 5000000
 
 vs :: Int
 vs = 100
@@ -26,7 +26,7 @@ main = do
     -- withheld rs, should be a list of doubles
     let wr = toList $ subVector 0 w r :: [Double]
 
-    let model = ols trainp trainr
+    model <- fast_ols trainp trainr
 
     let mse = (sum $ map (\(tp, x) -> ((iols model tp) - x) ** 2) $ zip wp wr) / (fromIntegral w)
 

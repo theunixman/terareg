@@ -33,6 +33,11 @@ maximizes memory usage.
 
 ## Unlimited Memory Scheme
 
+CAPS uses two mixing schemes. The Unlimited Memory (UM) scheme takes 
+
+# Target
+
+100M observations, 100 predictors => ~70GB, 4 minutes in memory.
 
 # References
 
