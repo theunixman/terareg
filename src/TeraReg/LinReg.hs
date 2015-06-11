@@ -2,12 +2,12 @@ module TeraReg.LinReg where
 
 import Numeric.LinearAlgebra.HMatrix
 
-ols ::
+ols :: 
     (Field t, Numeric t) =>
-    Matrix t -> Matrix t -> Matrix t
-ols x y = (pinv ((tr x) `mul` x )) `mul` ((tr x) `mul` y)
+    Matrix t -> Vector t -> Vector t
+ols x y = (pinv ((tr x) `mul` x )) #> ((tr x) #> y)
 
 iols ::
     Numeric t =>
-    Matrix t -> Matrix t -> Matrix t
-iols x b = (tr x) `mul` b
+    Matrix t -> Vector t -> Vector t
+iols x b = (tr x) #> b
