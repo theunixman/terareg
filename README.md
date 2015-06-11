@@ -12,37 +12,27 @@ final resulting matrix. The processing of these subsets can be
 scheduled weighting cache locality and freshness to minimize cache
 churn across cores.
 
-## Pipeline and Fusion
+# CAPS Matrix Multiplication
 
-The basic linear regression is:
+[CAPS][caps] is a communication-efficient method of parallizing
+Strassen's algorithm. It's well-suited to the non-uniform memory and
+processing architectures we're targeting. It "asymptotically minimizes
+computa- tional and bandwidth costs over all parallel Strassen-based
+algorithms. It also minimizes latency cost up to a logarithmic factor
+in the number of processors."
 
-    ols x y = (pinv ((tr x) `mul` x )) `mul` ((tr x) `mul` y)
+Strassen divides the matrix into a 7-ary tree, and CAPS recurses the
+problem tree in either of two ways: breadth-first and
+depth-first. Breadth-first (BFS) will divide the 7 subproblems across
+processors, so each processor will work on 1/7 of the
+problem. Depth-first (DFS) will use all processors on each subproblem
+in turn. BFS uses more memory while reducing communication, while DFS
+uses less memory but requires more communication overhead. CAPS
+minimizes communication costs by choosing an ordering of BFS/DFS that
+maximizes memory usage.
 
-Breaking this down into operations:
+## Unlimited Memory Scheme
 
-    i0 = x^T
-    i1 = i0 X x
-    pi = i1^-1
-    i3 = i0 X y
-    i4 = pi X i3
-
-The data dependency graph:
-
-    i0 <- x
-    i1 <- x, i0
-    i2 <- i1
-    i3 <- i0, y
-    i4 <- i2, i3
-
-And the data pipeline:
-
-       /----------\
-       |          |
-    B1 x -> i0 -> i1 -> pi ---\
-             |             B3 |--> i4
-    B2       |     y -> i3 ---/
-             |          |
-             `----------/ 
 
 # References
 
