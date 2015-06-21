@@ -20,7 +20,7 @@ library
   exposed-modules:     TeraReg.LinReg, TeraReg.DataGen
   other-modules:       TeraReg.MatrixMult
   -- other-extensions:    
-  build-depends:       base >=4.8 && <4.9,
+  build-depends:       base >=4.7 && <4.9,
                        bytestring >= 0.10,
                        cereal >= 0.4,
                        hmatrix >= 0.16.1.5 && < 0.17,
@@ -34,7 +34,7 @@ executable datagen
   main-is:     DataGen.hs
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       base >=4.8 && <4.9,
+  build-depends:       base >=4.7 && <4.9,
                        binary >= 0.7,
                        bytestring >= 0.10,
                        cereal >= 0.4,
