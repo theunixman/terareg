@@ -1,25 +1,19 @@
 module TeraReg.QuadTree where
 
 import Data.Monoid
+
+-- |A tree of `Quad`s representing the decomposition of a plane.
+data QuadTree a =
+    Empty |
+    Leaf a |
+    Node a (QuadTree a) (QuadTree a) (QuadTree a) (QuadTree a)
+    deriving Show
+             
+instance Functor QuadTree where
+    fmap _ Empty = Empty
+    fmap f (Leaf a) = Leaf (f a)
+    fmap f (Node a1 a2 a3 a4 a5) = Node (f a1) (fmap f a2) (fmap f a3) (fmap f a4) (fmap f a5)
     
--- -- |A tree dividing a plane into `Quad`s.
--- --
--- -- A `Leaf` is a `Quad` with no children. Each `Node` is a `Quad`
--- -- bounding box for the `QuadTree`s it contains.
--- data QuadTree =
---     Empty |
---     Leaf (Quad) |
---     Node Quad QuadTree
---     deriving Show
-
--- instance Monoid QuadTree where
---     mempty = Empty
---     mappend Empty Empty = Empty
---     mappend Empty (Leaf q) = Leaf q
---     mappend (Leaf q1) (Leaf q2) = Leaf $ q1 <> q2
---     mappend (Node q _) (Leaf q2) = Leaf $ q <> q2
---     mappend l n = n <> l
-
 -- |A quadrant of `Rect`s, including the bounding `Rect`.
 data Quad a = Quad {
       bounds :: a,
@@ -70,13 +64,13 @@ instance Monoid Rect where
               h = (max (t1 + h1) (t2 + h2)) - t
 
 -- Create a stream of `Quad`s tiling the original `Rect`.
-zorder :: Rect -> Int -> [Quad Rect]
+zorder :: Rect -> Int -> QuadTree (Quad Rect)
 zorder rect marea =
-    zord [] rect
+    zord $ fromRect rect
     where
-      zord :: [Quad Rect] -> Rect -> [Quad Rect]
-      zord t r =
-          if area r <= marea then
-              [Quad rect (q1 rect) (q2 rect) (q3 rect) (q4 rect)]
+      zord :: Quad Rect -> QuadTree (Quad Rect)
+      zord quad@(Quad r _ _ _ _) =
+          if (area r) <= marea then
+              Leaf quad
           else
-              concatMap (\q -> zord t (q r)) [q1, q2, q3, q4]
+              Node quad (zord $ fromRect $ nw quad) (zord $ fromRect $ ne quad) (zord $ fromRect $ sw quad) (zord $ fromRect $ se quad) 
