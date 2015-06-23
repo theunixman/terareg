@@ -1,3 +1,5 @@
+{-# Language RankNTypes, KindSignatures #-}
+
 module TeraReg.MatrixMult where
 
 import Control.Concurrent.Async (mapConcurrently)
@@ -45,3 +47,86 @@ strassen m n =
 quadwords :: Int
 quadwords = 128 * 1024 * 1024
 
+matrixFromRect :: 
+    Element a =>
+    Matrix a -> Rect -> Matrix a
+matrixFromRect mm (Rect l t w h) =
+    subMatrix (l, t) (w, h) mm
+
+quadRect ::
+    forall (f :: * -> *) a.
+    (Element a, Functor f) =>
+    Matrix a -> f Rect -> f (Matrix a)
+quadRect mm quad =
+    fmap (matrixFromRect mm) quad
+
+-- \mathbf{M}_{1} := (\mathbf{A}_{1,1} + \mathbf{A}_{2,2}) (\mathbf{B}_{1,1} + \mathbf{B}_{2,2})
+-- \mathbf{M}_{2} := (\mathbf{A}_{2,1} + \mathbf{A}_{2,2}) \mathbf{B}_{1,1}
+-- \mathbf{M}_{3} := \mathbf{A}_{1,1} (\mathbf{B}_{1,2} - \mathbf{B}_{2,2})
+-- \mathbf{M}_{4} := \mathbf{A}_{2,2} (\mathbf{B}_{2,1} - \mathbf{B}_{1,1})
+-- \mathbf{M}_{5} := (\mathbf{A}_{1,1} + \mathbf{A}_{1,2}) \mathbf{B}_{2,2}
+-- \mathbf{M}_{6} := (\mathbf{A}_{2,1} - \mathbf{A}_{1,1}) (\mathbf{B}_{1,1} + \mathbf{B}_{1,2})
+-- \mathbf{M}_{7} := (\mathbf{A}_{1,2} - \mathbf{A}_{2,2}) (\mathbf{B}_{2,1} + \mathbf{B}_{2,2})
+--
+-- only using 7 multiplications (one for each Mk) instead of 8. We may
+-- now express the Ci,j in terms of Mk, like this:
+--
+-- 
+-- \mathbf{C}_{1,1} = \mathbf{M}_{1} + \mathbf{M}_{4} - \mathbf{M}_{5} + \mathbf{M}_{7}
+-- \mathbf{C}_{1,2} = \mathbf{M}_{3} + \mathbf{M}_{5}
+-- \mathbf{C}_{2,1} = \mathbf{M}_{2} + \mathbf{M}_{4}
+-- \mathbf{C}_{2,2} = \mathbf{M}_{1} - \mathbf{M}_{2} + \mathbf{M}_{3} + \mathbf{M}_{6}
+strassQuad ::
+    Quad (Matrix Double) ->
+    Quad (Matrix Double) ->
+    Matrix Double
+strassQuad (Quad _ a11 a12 a21 a22) (Quad _ b11 b12 b21 b22) =
+    let
+        m1 = (a11 + a22) `mul` (b11 + b22)
+        m2 = (a21 + a22) `mul` b11
+        m3 = a11 `mul` (b12 - b22)
+        m4 = a22 `mul` (b21 - b11)
+        m5 = (a11 + a12) `mul` b22
+        m6 = (a21 - a11) `mul` (b11 + b12)
+        m7 = (a12 - a22) `mul` (b21 + b22)
+        c11 = m1 + m4 - m5 + m7
+        c12 = m3 + m5
+        c21 = m2 + m4
+        c22 = m1 -m2 + m3 + m6
+    in
+        (c11 ||| c12) === (c21 ||| c22)
+
+strassTree ::
+    forall (f :: * -> *) a.
+    (Element a, Functor f) =>
+    Matrix a -> QuadTree (f Rect) -> f (Matrix a)
+strassTree mm (Leaf q) = quadRect mm q
+
+-- qtStrassen m n =
+--     let
+--         qt x = zorder $ Rect 0 0 (fst . size $ x) (snd . size $ x)
+--         mqt = qt m
+--         nqt = qt n
+--         strass (Leaf (Quad a11 a12 a21 a22) (Leaf (Quad b11 b12 b21 b22)) = 
+                        
+--                         let a = ((q11 mm), (q11 nn)),
+--                 ((q12 mm), (q21 nn)),
+
+--                 ((q11 mm), (q12 nn)),
+--                 ((q12 mm), (q22 nn)),
+
+--                 ((q21 mm), (q12 nn)),
+--                 ((q22 mm), (q22 nn)),
+
+--                 ((q21 mm), (q12 nn)),
+--                 ((q22 mm), (q22 nn))]
+
+--             let c11 = a + b
+--             let c12 = c + d
+--             let c21 = e + f
+--             let c22 = g + h
+
+--             return ((c11 ||| c12) === (c21 ||| c22))
+                        
+--     in
+        
