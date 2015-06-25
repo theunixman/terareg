@@ -47,10 +47,14 @@ strassen m n =
 quadwords :: Int
 quadwords = 128 * 1024 * 1024
 
-matrixFromRect :: 
+-- |Transpose a `Rect`'s coordinates (not the data)
+transRect :: Rect -> Rect
+transRect (Rect l t w h) = (Rect t l h w)
+    
+subMatrixFromRect :: 
     Element a =>
     Matrix a -> Rect -> Matrix a
-matrixFromRect mm (Rect l t w h) =
+subMatrixFromRect mm (Rect l t w h) =
     subMatrix (l, t) (w, h) mm
 
 quadRect ::
@@ -58,7 +62,7 @@ quadRect ::
     (Element a, Functor f) =>
     Matrix a -> f Rect -> f (Matrix a)
 quadRect mm quad =
-    fmap (matrixFromRect mm) quad
+    fmap (subMatrixFromRect mm) quad
 
 -- \mathbf{M}_{1} := (\mathbf{A}_{1,1} + \mathbf{A}_{2,2}) (\mathbf{B}_{1,1} + \mathbf{B}_{2,2})
 -- \mathbf{M}_{2} := (\mathbf{A}_{2,1} + \mathbf{A}_{2,2}) \mathbf{B}_{1,1}
@@ -76,11 +80,11 @@ quadRect mm quad =
 -- \mathbf{C}_{1,2} = \mathbf{M}_{3} + \mathbf{M}_{5}
 -- \mathbf{C}_{2,1} = \mathbf{M}_{2} + \mathbf{M}_{4}
 -- \mathbf{C}_{2,2} = \mathbf{M}_{1} - \mathbf{M}_{2} + \mathbf{M}_{3} + \mathbf{M}_{6}
-strassQuad ::
+strassQuads ::
     Quad (Matrix Double) ->
     Quad (Matrix Double) ->
     Matrix Double
-strassQuad (Quad _ a11 a12 a21 a22) (Quad _ b11 b12 b21 b22) =
+strassQuads (Quad _ a11 a12 a21 a22) (Quad _ b11 b12 b21 b22) =
     let
         m1 = (a11 + a22) `mul` (b11 + b22)
         m2 = (a21 + a22) `mul` b11
@@ -96,11 +100,14 @@ strassQuad (Quad _ a11 a12 a21 a22) (Quad _ b11 b12 b21 b22) =
     in
         (c11 ||| c12) === (c21 ||| c22)
 
-strassTree ::
-    forall (f :: * -> *) a.
-    (Element a, Functor f) =>
-    Matrix a -> QuadTree (f Rect) -> f (Matrix a)
-strassTree mm (Leaf q) = quadRect mm q
+transStrassQuads ::
+    Matrix Double -> Quad Rect -> Matrix Double
+transStrassQuads mm qq =
+    let
+        qq1 = fmap (subMatrixFromRect mm) qq
+        qq2 = fmap (subMatrixFromRect $ tr mm) $ fmap transRect qq
+    in
+        strassQuads qq1 qq2
 
 -- qtStrassen m n =
 --     let

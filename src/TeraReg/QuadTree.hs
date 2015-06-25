@@ -34,9 +34,9 @@ fromRect r =
 data Rect = Rect {
       left :: Int,
       top :: Int,
-      width:: Int,
-      height:: Int
-    } deriving Show
+      height:: Int,
+      width:: Int
+    } deriving (Show, Eq)
 
 area :: Rect -> Int
 area (Rect _ _ w h) = w * h
