@@ -15,20 +15,25 @@ tests = return [
     testProperty "Strassen Quads" check_strassQuads
     ]
 
-instance Arbitrary (Matrix Double) where
-    arbitrary = return $ generatePredictors 8675309 10 10 0.25
+epsilon = 0.00001
 
+instance Arbitrary (Matrix Double) where
+    arbitrary = return $ generatePredictors 8675309 16 4 0.25
+
+quadFromMatrix :: Matrix Double -> Quad (Matrix Double)
+quadFromMatrix m =
+    quadRect m q
+    where
+        (h, w) = size m
+        q = fromRect $ Rect 0 0 w h
+        
 check_strassQuads m =
     let
-        (w1, h1) = size m
-        r1 = (Rect 0 0 w1 h1)
-        q1 = quadRect m $ fromRect r1
-        n = tr m
-        (w2, h2) = size n
-        r2 = (Rect 0 0 w2 h2)
-        q2 = quadRect n $ fromRect r2
+        quad1 = quadFromMatrix m
+        quad2 = quadFromMatrix $ tr m
+        adm = abs $ (m `mul` (tr m)) -  (quad1 `strassQuads` quad2)
     in
-        (m `mul` n) ==  (q1 `strassQuads` q2)
+        maxElement adm <= epsilon
 
 check_trans :: Matrix Double -> Bool
 check_trans m =

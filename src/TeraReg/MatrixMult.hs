@@ -55,7 +55,7 @@ subMatrixFromRect ::
     Element a =>
     Matrix a -> Rect -> Matrix a
 subMatrixFromRect mm (Rect l t w h) =
-    subMatrix (l, t) (w, h) mm
+    subMatrix (t, l) (h, w) mm
 
 quadRect ::
     forall (f :: * -> *) a.
@@ -96,7 +96,7 @@ strassQuads (Quad _ a11 a12 a21 a22) (Quad _ b11 b12 b21 b22) =
         c11 = m1 + m4 - m5 + m7
         c12 = m3 + m5
         c21 = m2 + m4
-        c22 = m1 -m2 + m3 + m6
+        c22 = m1 - m2 + m3 + m6
     in
         (c11 ||| c12) === (c21 ||| c22)
 

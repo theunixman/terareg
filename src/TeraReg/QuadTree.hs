@@ -17,14 +17,14 @@ instance Functor QuadTree where
 -- |A quadrant of `Rect`s, including the bounding `Rect`.
 data Quad a = Quad {
       bounds :: a,
-      nw :: a,
-      ne :: a,
-      sw :: a,
-      se :: a
+      q11 :: a,
+      q12 :: a,
+      q21 :: a,
+      q22 :: a
     } deriving Show
 
 instance Functor Quad where
-    fmap f (Quad r qne qnw qse qsw) = Quad (f r) (f qne) (f qnw) (f qse) (f qsw)
+    fmap f (Quad r q11 q12 q21 q22) = Quad (f r) (f q11) (f q12) (f q21) (f q22)
 
 fromRect :: Rect -> Quad Rect
 fromRect r =
@@ -34,8 +34,8 @@ fromRect r =
 data Rect = Rect {
       left :: Int,
       top :: Int,
-      height:: Int,
-      width:: Int
+      width:: Int,
+      height :: Int
     } deriving (Show, Eq)
 
 area :: Rect -> Int
@@ -73,4 +73,4 @@ zorder rect marea =
           if (area r) <= marea then
               Leaf quad
           else
-              Node quad (zord $ fromRect $ nw quad) (zord $ fromRect $ ne quad) (zord $ fromRect $ sw quad) (zord $ fromRect $ se quad) 
+              Node quad (zord $ fromRect $ q11 quad) (zord $ fromRect $ q12 quad) (zord $ fromRect $ q21 quad) (zord $ fromRect $ q22 quad) 
