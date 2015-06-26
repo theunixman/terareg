@@ -18,7 +18,8 @@ tests = return [
 epsilon = 0.00001
 
 instance Arbitrary (Matrix Double) where
-    arbitrary = return $ generatePredictors 8675309 16 4 0.25
+    arbitrary = sized $ \n ->
+                            return $ generatePredictors 8675309 ((n + 1) * 2) ((n + 1) * 6) 0.25
 
 quadFromMatrix :: Matrix Double -> Quad (Matrix Double)
 quadFromMatrix m =
@@ -27,6 +28,7 @@ quadFromMatrix m =
         (h, w) = size m
         q = fromRect $ Rect 0 0 w h
         
+check_strassQuads :: Matrix Double -> Bool
 check_strassQuads m =
     let
         quad1 = quadFromMatrix m
@@ -44,3 +46,5 @@ check_trans m =
         tmat = tr $ subMatrixFromRect m trect
     in
         tr m == tmat
+
+-- check_TransStrass
