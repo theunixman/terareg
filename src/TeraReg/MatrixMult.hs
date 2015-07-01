@@ -17,24 +17,24 @@ strassen m n =
     where
         x_h = fst . size
         x_w = snd . size
-        q11 x = subMatrix (0, 0) ((x_h x) `div` 2, (x_w x) `div` 2) x
-        q12 x = subMatrix (0, (x_w x) `div` 2 + 1) ((x_h x `div` 2), x_w x - ((x_w x) `div` 2)) x
-        q21 x = subMatrix ((x_h x) `div` 2 + 1, 0) (x_h x - (x_h x) `div` 2, (x_w x) `div` 2) x
-        q22 x = subMatrix ((x_h x) `div` 2 + 1, (x_w x) `div` 2 + 1) (x_h x - (x_h x) `div` 2, x_w x - ((x_w x) `div` 2)) x
+        r11 x = subMatrix (0, 0) ((x_h x) `div` 2, (x_w x) `div` 2) x
+        r12 x = subMatrix (0, (x_w x) `div` 2 + 1) ((x_h x `div` 2), x_w x - ((x_w x) `div` 2)) x
+        r21 x = subMatrix ((x_h x) `div` 2 + 1, 0) (x_h x - (x_h x) `div` 2, (x_w x) `div` 2) x
+        r22 x = subMatrix ((x_h x) `div` 2 + 1, (x_w x) `div` 2 + 1) (x_h x - (x_h x) `div` 2, x_w x - ((x_w x) `div` 2)) x
 
         strass mm nn = do
             [a, b, c, d, e, f, g, h] <- mapConcurrently (\(m0, m1) -> strassen m0 m1) [
-                ((q11 mm), (q11 nn)),
-                ((q12 mm), (q21 nn)),
+                ((r11 mm), (r11 nn)),
+                ((r12 mm), (r21 nn)),
 
-                ((q11 mm), (q12 nn)),
-                ((q12 mm), (q22 nn)),
+                ((r11 mm), (r12 nn)),
+                ((r12 mm), (r22 nn)),
 
-                ((q21 mm), (q12 nn)),
-                ((q22 mm), (q22 nn)),
+                ((r21 mm), (r12 nn)),
+                ((r22 mm), (r22 nn)),
 
-                ((q21 mm), (q12 nn)),
-                ((q22 mm), (q22 nn))]
+                ((r21 mm), (r12 nn)),
+                ((r22 mm), (r22 nn))]
 
             let c11 = a + b
             let c12 = c + d
@@ -47,10 +47,6 @@ strassen m n =
 quadwords :: Int
 quadwords = 128 * 1024 * 1024
 
--- |Transpose a `Rect`'s coordinates (not the data)
-transRect :: Rect -> Rect
-transRect (Rect l t w h) = (Rect t l h w)
-    
 subMatrixFromRect :: 
     Element a =>
     Matrix a -> Rect -> Matrix a
@@ -84,7 +80,7 @@ strassQuads ::
     Quad (Matrix Double) ->
     Quad (Matrix Double) ->
     Matrix Double
-strassQuads (Quad _ a11 a12 a21 a22) (Quad _ b11 b12 b21 b22) =
+strassQuads (Quad a11 a12 a21 a22) (Quad b11 b12 b21 b22) =
     let
         m1 = (a11 + a22) `mul` (b11 + b22)
         m2 = (a21 + a22) `mul` b11
@@ -100,15 +96,34 @@ strassQuads (Quad _ a11 a12 a21 a22) (Quad _ b11 b12 b21 b22) =
     in
         (c11 ||| c12) === (c21 ||| c22)
 
-transStrassQuads ::
-    Matrix Double -> Quad Rect -> Matrix Double
-transStrassQuads mm qq =
+qtStrass :: Matrix Double -> Matrix Double
+qtStrass m =
     let
-        qq1 = fmap (subMatrixFromRect mm) qq
-        qq2 = fmap (subMatrixFromRect $ tr mm) $ fmap transRect qq
+        (h, w) = size m
+        strass (Leaf q) =
+            let
+                s = fmap (subMatrixFromRect m) q
+                t = fmap tr s
+            in
+                strassQuads s t
+        strass (Node a b c d) =
+            let
+                m11 = strass a
+                m12 = strass b
+                m21 = strass c
+                m22 = strass d
+            in
+                (m11 ||| m12) === (m21 ||| m22)
+        
+        -- strass n@(Node a11 a12 a21 a22) =
+        --     Leaf $ (m11 ||| m12) === (m21 ||| m22)
+        --     where
+        --         (Node m11 m12 m21 m22) = fmap strass n
+        -- strass q = fmap strass q
+            -- in
+            --     
     in
-        strassQuads qq1 qq2
-
+        strass $ zorder (Rect 0 0 w h) quadwords
 -- qtStrassen m n =
 --     let
 --         qt x = zorder $ Rect 0 0 (fst . size $ x) (snd . size $ x)

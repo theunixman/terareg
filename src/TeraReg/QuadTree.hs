@@ -6,17 +6,16 @@ import Data.Monoid
 data QuadTree a =
     Empty |
     Leaf a |
-    Node a (QuadTree a) (QuadTree a) (QuadTree a) (QuadTree a)
+    Node (QuadTree a) (QuadTree a) (QuadTree a) (QuadTree a)
     deriving Show
              
 instance Functor QuadTree where
     fmap _ Empty = Empty
     fmap f (Leaf a) = Leaf (f a)
-    fmap f (Node a1 a2 a3 a4 a5) = Node (f a1) (fmap f a2) (fmap f a3) (fmap f a4) (fmap f a5)
+    fmap f (Node a1 a2 a3 a4) = Node (fmap f a1) (fmap f a2) (fmap f a3) (fmap f a4)
     
 -- |A quadrant of `Rect`s, including the bounding `Rect`.
 data Quad a = Quad {
-      bounds :: a,
       q11 :: a,
       q12 :: a,
       q21 :: a,
@@ -24,12 +23,16 @@ data Quad a = Quad {
     } deriving Show
 
 instance Functor Quad where
-    fmap f (Quad r q11 q12 q21 q22) = Quad (f r) (f q11) (f q12) (f q21) (f q22)
+    fmap f (Quad a b c d) = Quad (f a) (f b) (f c) (f d)
 
 fromRect :: Rect -> Quad Rect
 fromRect r =
-    Quad r (q1 r) (q2 r) (q3 r) (q4 r)
+    Quad (q1 r) (q2 r) (q3 r) (q4 r)
 
+fromQuad :: Quad Rect -> Rect
+fromQuad (Quad a b c d) =
+    a <> b <> c <> d
+    
 -- |A `Rect` can be divided into four quadrants
 data Rect = Rect {
       left :: Int,
@@ -69,8 +72,8 @@ zorder rect marea =
     zord $ fromRect rect
     where
       zord :: Quad Rect -> QuadTree (Quad Rect)
-      zord quad@(Quad r _ _ _ _) =
-          if (area r) <= marea then
+      zord quad =
+          if (area $ fromQuad quad) <= marea then
               Leaf quad
           else
-              Node quad (zord $ fromRect $ q11 quad) (zord $ fromRect $ q12 quad) (zord $ fromRect $ q21 quad) (zord $ fromRect $ q22 quad) 
+              Node (zord $ fromRect $ q11 quad) (zord $ fromRect $ q12 quad) (zord $ fromRect $ q21 quad) (zord $ fromRect $ q22 quad) 
